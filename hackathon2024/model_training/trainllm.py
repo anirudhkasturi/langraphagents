@@ -1,4 +1,5 @@
 import os
+import csv
 import torch
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, Trainer, TrainingArguments
 from datasets import load_dataset
@@ -10,14 +11,20 @@ print(os.getcwd())
 #Define Labels
 id2label = {0: "Negative", 1: "Positive"}
 label2id = {"Negative": 0, "Positive" : 1}
-# Load the dataset
-df = pd.read_csv('langgraph-example/model_training/sensitiveDataLlmTraining.csv')
-dataset = Dataset.from_pandas(df)
 
+# Load the dataset
+df = pd.read_csv('hackathon2024/model_training/sensitiveDataLlmTraining.csv')
+column_to_clean = 'text'
+# Clean the new line characters from the dataset 'text' rows 
+df[column_to_clean] = df[column_to_clean].str.replace(r'[\n\r]', '', regex=True)
+print(df.head())
+dataset = Dataset.from_pandas(df)
+print("Dataset")
+print(dataset)
 # Load pre-trained model and tokenizer
-model_name = "anthropic"  # You can choose a different model
-tokenizer = AutoTokenizer.from_pretrained(model_name)
-model = AutoModelForSequenceClassification.from_pretrained(model_name, num_labels=2, 
+model_checkpoint = 'distilbert-base-uncased'
+tokenizer = AutoTokenizer.from_pretrained(model_checkpoint)
+model = AutoModelForSequenceClassification.from_pretrained(model_checkpoint, num_labels=2, 
 id2label=id2label, label2id=label2id)
 
 # Tokenize the input texts
@@ -27,7 +34,9 @@ def tokenize_function(examples):
 tokenized_datasets = dataset.map(tokenize_function, batched=True)
 
 # Split the dataset into train and test sets
-train_test_split = tokenized_dataset.train_test_split(test_size=0.2)
+train_test_split = tokenized_datasets.train_test_split(test_size=0.2)
+print(train_test_split['train'])
+print(train_test_split['test'])
 
 # Set training arguments
 training_args = TrainingArguments(
